@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./app.css";
+import "./globals.css";
 
 import AuthenticatorWrapper from "./AuthenticatorWrapper";
 import "@aws-amplify/ui-react/styles.css";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { UserProvider } from "@/contexts/UserContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,11 +22,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-       
     <html lang="en">
-      <body>      
+      <body className={inter.className}>  
         <AuthenticatorWrapper>
-          {children}
+          <UserProvider>
+            <SidebarProvider defaultOpen={true}>
+              <AppSidebar/>
+              <main className="w-full p-4">
+                <SidebarTrigger/>
+                {children}
+              </main>
+            </SidebarProvider>
+          </UserProvider>
         </AuthenticatorWrapper>
       </body>
     </html>
