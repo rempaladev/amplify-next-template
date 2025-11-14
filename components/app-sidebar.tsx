@@ -3,6 +3,7 @@
 import { Calendar, Home, Inbox, Search, Settings, User2, ChevronUp, LogOut } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,12 +26,12 @@ import {
 const items = [
   {
     title: "Home",
-    url: "#",
+    url: "/",
     icon: Home,
   },
   {
     title: "My Lessons",
-    url: "#",
+    url: "/lesson",
     icon: Search,
   },
   {
@@ -59,10 +60,10 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

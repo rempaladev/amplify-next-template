@@ -7,6 +7,7 @@ import "@aws-amplify/ui-react/styles.css";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { UserProvider } from "@/contexts/UserContext";
+import ConfigureAmplify from "./ConfigureAmplify";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>  
+        <ConfigureAmplify />
         <AuthenticatorWrapper>
           <UserProvider>
             <SidebarProvider defaultOpen={true}>
