@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import "./../app/app.css";
 import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
@@ -19,10 +18,9 @@ export default function App() {
   const email = user?.signInDetails?.loginId;
   
   return (
-    <div>
-      <h1>Hello world!</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1>Welcome!</h1>
       <p>Email: {email}</p>
-      <button onClick={signOut}>Sign out</button>
     </div>
   );
 }
