@@ -2,7 +2,7 @@
 
 import { getAgentId } from '@/lib/config';
 import { useConversation } from '@elevenlabs/react';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export function Conversation() {
   const conversation = useConversation({
@@ -11,7 +11,6 @@ export function Conversation() {
     onMessage: (message) => console.log('Message:', message),
     onError: (error) => console.error('Error:', error),
   });
-
 
   const startConversation = useCallback(async () => {
   try {
