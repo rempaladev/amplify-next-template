@@ -50,8 +50,8 @@ export async function GET() {
   const tokenUrl = `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${agentId}`;
 
   try {
-    console.log("Fetching conversation token from ElevenLabs API..." + apiKey);
     
+    console.log("Fetching conversation token from ElevenLabs API...");
     const response = await fetch(tokenUrl, {
       method: 'GET',
       headers: {
@@ -63,10 +63,10 @@ export async function GET() {
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
-  const data = await response.json();
-  return NextResponse.json({ 
-    conversation_token: data.conversation_token,
-    agentId: agentId 
+    const data = await response.json();
+    return NextResponse.json({ 
+      conversation_token: data.token,
+      agentId: agentId 
 });
   } catch (error) {
     console.error('Error fetching conversation token:', error);

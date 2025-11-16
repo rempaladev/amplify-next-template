@@ -27,7 +27,7 @@ export function Conversation() {
     if(!res.ok) throw new Error('Token fetch failed');
     const { conversation_token, agentId } = await res.json();
 
-    console.log("Starting conversation with agent... " + conversation_token + " and agentId: " + agentId);
+    console.log("Starting conversation with agent... ");
 
     //  Start with WebRTC
     await conversation.startSession({
