@@ -1,6 +1,5 @@
 'use client';
 
-import { getAgentId } from '@/lib/config';
 import { useConversation } from '@elevenlabs/react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -21,20 +20,23 @@ export function Conversation() {
   });
 
   const startWebRTC = async () =>{
+
+    // Fetch conversation token and agent ID from our API route
     const res = await fetch('/api/elevenlabs-auth');
+
     if(!res.ok) throw new Error('Token fetch failed');
-    const { conversation_token } = await res.json();
+    const { conversation_token, agentId } = await res.json();
 
-    console.log("Starting conversation with agent... " + conversation_token);
+    console.log("Starting conversation with agent... " + conversation_token + " and agentId: " + agentId);
 
-      //  Start with WebRTC
+    //  Start with WebRTC
     await conversation.startSession({
-      agentId: process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID,
+      agentId: agentId,
       connectionType:'webrtc',
       conversationToken: conversation_token,
     });
 
-    console.log('WebRTC session started');
+    console.log('WebRTC session started...');
   }
 
   const startConversation = useCallback(async () => {
