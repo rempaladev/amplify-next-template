@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
 
+  console.log(JSON.stringify(process.env))
   console.log("ElevenLabs Auth Route Invoked");
   console.log("Loading agentId...");
   const agentId = process.env.ELEVENLABS_AGENT_ID || process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
