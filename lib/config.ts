@@ -2,8 +2,8 @@
 export async function getAgentId(): Promise<string> {
   // Local development - use env var
 
-  if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID) {
-    return process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
+  if (process.env.NODE_ENV === 'development') {
+    return process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || '';
   }
 
   // Production - call API route

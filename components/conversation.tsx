@@ -5,29 +5,46 @@ import { useConversation } from '@elevenlabs/react';
 import { useCallback, useEffect, useState } from 'react';
 
 export function Conversation() {
+  const [error, setError] = useState<string | null>(null);
+  
   const conversation = useConversation({
-    onConnect: () => console.log('Connected'),
+    onConnect: () => {
+      console.log('Connected');
+      setError(null);
+    },
     onDisconnect: () => console.log('Disconnected'),
     onMessage: (message) => console.log('Message:', message),
-    onError: (error) => console.error('Error:', error),
+    onError: (error) => {
+      console.error('Error:', error);
+      setError('Failed to connect to agent. Please try again.');
+    },
   });
+
+  const startWebRTC = async () =>{
+    const res = await fetch('/api/elevenlabs-auth');
+    if(!res.ok) throw new Error('Token fetch failed');
+    const { conversation_token } = await res.json();
+
+    console.log("Starting conversation with agent... " + conversation_token);
+
+      //  Start with WebRTC
+    await conversation.startSession({
+      agentId: process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID,
+      connectionType:'webrtc',
+      conversationToken: conversation_token,
+    });
+
+    console.log('WebRTC session started');
+  }
 
   const startConversation = useCallback(async () => {
   try {
     await navigator.mediaDevices.getUserMedia({ audio: true });
-    
-    const agentId = await getAgentId();
-    
-    await conversation.startSession({
-      agentId,
-      userId: 'YOUR_CUSTOMER_USER_ID',
-      connectionType: 'webrtc',
-    });
+    await startWebRTC();
   } catch (error) {
     console.error('Failed to start conversation:', error);
-  }
-}, [conversation]);
-
+    setError('Failed to start conversation. Please check your connection.');
+  }}, [conversation]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
@@ -55,6 +72,7 @@ export function Conversation() {
       <div className="flex flex-col items-center">
         <p>Status: {conversation.status}</p>
         <p>Agent is {conversation.isSpeaking ? 'speaking' : 'listening'}</p>
+        {error && <p className="text-red-500 mt-2">{error}</p>}
       </div>
     </div>
   );
