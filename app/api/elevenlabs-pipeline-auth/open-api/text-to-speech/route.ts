@@ -52,7 +52,7 @@ export async function GET(req: Request) {
   const voiceId = url.searchParams.get("voiceId") ?? "8jMNCczgLGJQ3uVTkRhG";
   if (!text) return NextResponse.json({ error: "Missing 'text' query" }, { status: 400 });
 
-  const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+  const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
     method: "POST",
     headers: {
       "xi-api-key": apiKey,
@@ -63,21 +63,19 @@ export async function GET(req: Request) {
     body: JSON.stringify({
       text,
       model_id: "eleven_multilingual_v2",
-      output_format: "mp3_22050_32",
       latency_optimization_level: 4,
+      // optional: "optimize_for_streaming": true
     }),
     // @ts-expect-error
     agent: keepAliveAgent,
   });
 
   if (!resp.ok) {
-    const err = await resp.text();
-    return NextResponse.json({ error: err }, { status: resp.status });
+    const errText = await resp.text();
+    return NextResponse.json({ error: errText }, { status: resp.status });
   }
 
-  const readable = resp.body;
-  return new Response(readable ?? (await resp.arrayBuffer()), {
-    status: 200,
+  return new Response(resp.body ?? (await resp.arrayBuffer()), {
     headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" },
   });
 }

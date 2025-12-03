@@ -8,16 +8,6 @@ async function fetchTokenFromServer() {
   return data.token;
 }
 
-async function sendToOpenAI(transcript: string, sessionId: string) {
-  const response = await fetch("/api/elevenlabs-pipeline-auth/open-api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: transcript, sessionId }),
-  });
-  const data = await response.json();
-  return data.response;
-}
-
 async function sendToOpenAIStream(transcript: string, sessionId: string, onChunk: (text: string) => void): Promise<string> {
   const resp = await fetch("/api/elevenlabs-pipeline-auth/open-api/chat", {
     method: "POST",
@@ -45,9 +35,11 @@ async function sendToOpenAIStream(transcript: string, sessionId: string, onChunk
         const delta = payload?.choices?.[0]?.delta?.content;
         if (typeof delta === "string") {
           fullText += delta;
-          onChunk(fullText); // update UI progressively
+          onChunk(fullText);
         }
-      } catch { /* ignore */ }
+      } catch {
+        // ignore
+      }
     }
   }
   return fullText;
@@ -56,7 +48,9 @@ async function sendToOpenAIStream(transcript: string, sessionId: string, onChunk
 async function playTextToSpeech(text: string) {
   try {
     const audio = new Audio();
-    audio.src = `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(text)}`;
+    audio.src = `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(
+      text
+    )}`;
     return new Promise<void>((resolve, reject) => {
       audio.onended = () => resolve();
       audio.onerror = (e) => reject(e);
@@ -70,7 +64,6 @@ async function playTextToSpeech(text: string) {
 export function LearnerConversation() {
   const sessionId = useRef(Date.now().toString()).current;
 
-  // Conversation log
   const [messages, setMessages] = useState<
     { role: "user" | "assistant"; text: string; ts: number }[]
   >([]);
@@ -78,11 +71,26 @@ export function LearnerConversation() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    // Auto-scroll to bottom when messages or partial change
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [messages, partial]);
+
+  // Helper to update the latest assistant message text
+  const updateAssistantText = (text: string) => {
+    setMessages((prev) => {
+      const lastAssistantIdx = [...prev].reverse().findIndex((m) => m.role === "assistant");
+      if (lastAssistantIdx === -1) return prev;
+      const idx = prev.length - 1 - lastAssistantIdx;
+      const next = [...prev];
+      next[idx] = { ...next[idx], text };
+      return next;
+    });
+  };
+
+  // Use a ref instead of window flags
+  const ttsStartedRef = useRef(false);
+  const firstSentenceRef = useRef<string | null>(null);
 
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
@@ -94,45 +102,45 @@ export function LearnerConversation() {
       setPartial("");
       if (!text) return;
 
-      // 1) Add user's committed utterance
+      // Add user's message
       setMessages((prev) => [...prev, { role: "user", text, ts: Date.now() }]);
+      // Add assistant placeholder
+      setMessages((prev) => [...prev, { role: "assistant", text: "", ts: Date.now() }]);
 
-      // 2) Add assistant placeholder BEFORE streaming starts
-      const placeholderTs = Date.now();
-      setMessages((prev) => [...prev, { role: "assistant", text: "", ts: placeholderTs }]);
-
-      // 3) Stream AI response and update the placeholder as chunks arrive
-      const aiStart = performance.now();
       const aiResponse = await sendToOpenAIStream(text, sessionId, (chunk) => {
-        setMessages((prev) => {
-          // Find the last assistant message (the placeholder we just added)
-          const lastIdx = [...prev].reverse().findIndex((m) => m.role === "assistant");
-          if (lastIdx === -1) return prev;
-          const idx = prev.length - 1 - lastIdx;
-          const updated = [...prev];
-          updated[idx] = { ...updated[idx], text: chunk };
-          return updated;
-        });
-      });
-      console.log("OpenAI took:", (performance.now() - aiStart).toFixed(2), "ms");
+        // Update assistant text progressively
+        updateAssistantText(chunk);
 
-      // 4) Optionally ensure final text is set (in case of last chunk race)
-      setMessages((prev) => {
-        const lastIdx = [...prev].reverse().findIndex((m) => m.role === "assistant");
-        if (lastIdx === -1) return prev;
-        const idx = prev.length - 1 - lastIdx;
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], text: aiResponse };
-        return updated;
+        // Kick off TTS on first sentence
+        const sentence = chunk.match(/^[\s\S]*?[\.!\?]/)?.[0];
+        if (sentence && !ttsStartedRef.current) {
+          ttsStartedRef.current = true;
+          firstSentenceRef.current = sentence;
+          const audio = new Audio(
+            `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(sentence)}`
+          );
+          audio.play().catch(() => {});
+        }
       });
 
-      // 5) TTS
-      let startFetch = performance.now();
-      await playTextToSpeech(aiResponse);
-      console.log("Total TTS time:", (performance.now() - startFetch).toFixed(2), "ms");
+      // Play remaining text (after the first sentence), if any
+      if (ttsStartedRef.current) {
+        const first = firstSentenceRef.current ?? "";
+        const remaining = aiResponse.slice(first.length);
+        if (remaining.trim()) {
+          const audio2 = new Audio(
+            `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(remaining)}`
+          );
+          audio2.play().catch(() => {});
+        }
+      }
+      ttsStartedRef.current = false;
+      firstSentenceRef.current = null;
+
+      // Ensure final assistant text is set
+      updateAssistantText(aiResponse);
     },
     onCommittedTranscriptWithTimestamps: (data) => {
-      // Optional: you could attach timestamps to last user message if needed
       console.log("Committed with timestamps:", data.text);
     },
   });
@@ -169,7 +177,6 @@ export function LearnerConversation() {
       </p>
 
       <div className="w-full max-w-2xl rounded-lg border bg-background p-6">
-        {/* Status pills */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm">Status:</span>
           {isDisconnected && (
@@ -192,7 +199,6 @@ export function LearnerConversation() {
           )}
         </div>
 
-        {/* Speak indicator */}
         {isConnected ? (
           <div className="mb-3 flex items-center justify-center">
             <div className="flex items-center gap-3 rounded-md border px-4 py-3 bg-green-50 text-green-700">
@@ -212,25 +218,17 @@ export function LearnerConversation() {
           </div>
         )}
 
-        {/* Transcript list */}
-        <div
-          ref={listRef}
-          className="h-64 overflow-y-auto rounded border bg-muted/20 p-4 space-y-3"
-        >
+        <div ref={listRef} className="h-64 overflow-y-auto rounded border bg-muted/20 p-4 space-y-3">
           {messages.map((m, i) => (
             <div
               key={m.ts + "-" + i}
               className={`max-w-[85%] rounded px-3 py-2 text-sm ${
-                m.role === "user"
-                  ? "bg-blue-50 text-blue-900 ml-auto"
-                  : "bg-gray-100 text-gray-900 mr-auto"
+                m.role === "user" ? "bg-blue-50 text-blue-900 ml-auto" : "bg-gray-100 text-gray-900 mr-auto"
               }`}
             >
               {m.text}
             </div>
           ))}
-
-          {/* Live partial while speaking */}
           {partial && (
             <div className="max-w-[85%] rounded px-3 py-2 text-sm bg-blue-100 text-blue-900 ml-auto opacity-70">
               {partial}
@@ -238,7 +236,6 @@ export function LearnerConversation() {
           )}
         </div>
 
-        {/* Controls */}
         <div className="mt-4 flex gap-3">
           <button
             className={`px-4 py-2 rounded text-white transition ${
