@@ -20,28 +20,11 @@ async function sendToOpenAI(transcript: string, sessionId: string) {
 
 async function playTextToSpeech(text: string) {
   try {
-    const startFetch = performance.now();
-    const response = await fetch("/api/elevenlabs-pipeline-auth/open-api/text-to-speech", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    console.log("TTS API call took:", (performance.now() - startFetch).toFixed(2), "ms");
-
-    const startBlob = performance.now();
-    const audioBlob = await response.blob();
-    console.log("Blob creation took:", (performance.now() - startBlob).toFixed(2), "ms");
-
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    const startAudioPlay = performance.now();
+    const audio = new Audio();
+    audio.src = `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(text)}`;
     return new Promise<void>((resolve, reject) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve();
-      };
-      audio.onerror = reject;
-      console.log("Audio play took:", (performance.now() - startAudioPlay).toFixed(2), "ms");
+      audio.onended = () => resolve();
+      audio.onerror = (e) => reject(e);
       audio.play();
     });
   } catch (error) {
@@ -92,7 +75,6 @@ export function LearnerConversation() {
       let startFetch = performance.now();
       await playTextToSpeech(aiResponse);
       console.log("Total TTS time:", (performance.now() - startFetch).toFixed(2), "ms");
-
     },
     onCommittedTranscriptWithTimestamps: (data) => {
       // Optional: you could attach timestamps to last user message if needed
