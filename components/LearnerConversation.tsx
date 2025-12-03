@@ -18,6 +18,41 @@ async function sendToOpenAI(transcript: string, sessionId: string) {
   return data.response;
 }
 
+async function sendToOpenAIStream(transcript: string, sessionId: string, onChunk: (text: string) => void): Promise<string> {
+  const resp = await fetch("/api/elevenlabs-pipeline-auth/open-api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: transcript, sessionId }),
+  });
+  if (!resp.ok || !resp.body) {
+    throw new Error("Failed to stream OpenAI response");
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value);
+    for (const line of chunk.split("\n")) {
+      if (!line.startsWith("data: ")) continue;
+      const dataStr = line.slice(6).trim();
+      if (dataStr === "[DONE]") continue;
+      try {
+        const payload = JSON.parse(dataStr);
+        const delta = payload?.choices?.[0]?.delta?.content;
+        if (typeof delta === "string") {
+          fullText += delta;
+          onChunk(fullText); // update UI progressively
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return fullText;
+}
+
 async function playTextToSpeech(text: string) {
   try {
     const audio = new Audio();
@@ -56,22 +91,42 @@ export function LearnerConversation() {
     },
     onCommittedTranscript: async (data) => {
       const text = (data.text ?? "").trim();
-      setPartial(""); // clear partial when committed
-
+      setPartial("");
       if (!text) return;
 
-      // Add user's committed utterance
+      // 1) Add user's committed utterance
       setMessages((prev) => [...prev, { role: "user", text, ts: Date.now() }]);
 
-      // Get AI response
+      // 2) Add assistant placeholder BEFORE streaming starts
+      const placeholderTs = Date.now();
+      setMessages((prev) => [...prev, { role: "assistant", text: "", ts: placeholderTs }]);
+
+      // 3) Stream AI response and update the placeholder as chunks arrive
       const aiStart = performance.now();
-      const aiResponse = await sendToOpenAI(text, sessionId);
+      const aiResponse = await sendToOpenAIStream(text, sessionId, (chunk) => {
+        setMessages((prev) => {
+          // Find the last assistant message (the placeholder we just added)
+          const lastIdx = [...prev].reverse().findIndex((m) => m.role === "assistant");
+          if (lastIdx === -1) return prev;
+          const idx = prev.length - 1 - lastIdx;
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], text: chunk };
+          return updated;
+        });
+      });
       console.log("OpenAI took:", (performance.now() - aiStart).toFixed(2), "ms");
 
-      // Add assistant response
-      setMessages((prev) => [...prev, { role: "assistant", text: aiResponse, ts: Date.now() }]);
+      // 4) Optionally ensure final text is set (in case of last chunk race)
+      setMessages((prev) => {
+        const lastIdx = [...prev].reverse().findIndex((m) => m.role === "assistant");
+        if (lastIdx === -1) return prev;
+        const idx = prev.length - 1 - lastIdx;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], text: aiResponse };
+        return updated;
+      });
 
-      // Speak the response
+      // 5) TTS
       let startFetch = performance.now();
       await playTextToSpeech(aiResponse);
       console.log("Total TTS time:", (performance.now() - startFetch).toFixed(2), "ms");
