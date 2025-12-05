@@ -68,8 +68,17 @@ export function LearnerConversation() {
     { role: "user" | "assistant"; text: string; ts: number }[]
   >([]);
   const [partial, setPartial] = useState<string>("");
-
   const listRef = useRef<HTMLDivElement | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.preload = "none";
+    }
+  }, []);
+
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -108,31 +117,16 @@ export function LearnerConversation() {
       setMessages((prev) => [...prev, { role: "assistant", text: "", ts: Date.now() }]);
 
       const aiResponse = await sendToOpenAIStream(text, sessionId, (chunk) => {
-        // Update assistant text progressively
+        // Keep progressive UI updates
         updateAssistantText(chunk);
-
-        // Kick off TTS on first sentence
-        const sentence = chunk.match(/^[\s\S]*?[\.!\?]/)?.[0];
-        if (sentence && !ttsStartedRef.current) {
-          ttsStartedRef.current = true;
-          firstSentenceRef.current = sentence;
-          const audio = new Audio(
-            `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(sentence)}`
-          );
-          audio.play().catch(() => {});
-        }
       });
 
-      // Play remaining text (after the first sentence), if any
-      if (ttsStartedRef.current) {
-        const first = firstSentenceRef.current ?? "";
-        const remaining = aiResponse.slice(first.length);
-        if (remaining.trim()) {
-          const audio2 = new Audio(
-            `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(remaining)}`
-          );
-          audio2.play().catch(() => {});
-        }
+      // One-shot TTS for the complete assistant response
+      if (audioRef.current && aiResponse.trim()) {
+        audioRef.current.src =
+          `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(aiResponse)}`;
+        audioRef.current.load();
+        audioRef.current.play().catch(() => {});
       }
       ttsStartedRef.current = false;
       firstSentenceRef.current = null;
