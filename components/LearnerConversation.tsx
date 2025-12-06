@@ -45,22 +45,6 @@ async function sendToOpenAIStream(transcript: string, sessionId: string, onChunk
   return fullText;
 }
 
-async function playTextToSpeech(text: string) {
-  try {
-    const audio = new Audio();
-    audio.src = `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(
-      text
-    )}`;
-    return new Promise<void>((resolve, reject) => {
-      audio.onended = () => resolve();
-      audio.onerror = (e) => reject(e);
-      audio.play();
-    });
-  } catch (error) {
-    console.error("Error playing audio:", error);
-  }
-}
-
 export function LearnerConversation() {
   const sessionId = useRef(Date.now().toString()).current;
 
@@ -71,6 +55,7 @@ export function LearnerConversation() {
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playGenRef = useRef<number>(0); // increments to cancel stale plays
 
   useEffect(() => {
     if (!audioRef.current) {
@@ -104,12 +89,18 @@ export function LearnerConversation() {
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
     onPartialTranscript: (data) => {
+      console.log("making it to partial transcript", data.text);
       setPartial(data.text ?? "");
+      playGenRef.current++; // invalidate any in-flight play from prior commit
     },
     onCommittedTranscript: async (data) => {
       const text = (data.text ?? "").trim();
+      console.log("Committed transcript:", text);
       setPartial("");
       if (!text) return;
+
+      stopAudio();
+      playGenRef.current++; // invalidate any in-flight play from prior commit
 
       // Add user's message
       setMessages((prev) => [...prev, { role: "user", text, ts: Date.now() }]);
@@ -156,11 +147,41 @@ export function LearnerConversation() {
         autoGainControl: true,
       },
     });
+    
+    let greeting = "Hello are you Ready to Learn! I am here to help you practice. Please say something when you are ready."
+    setMessages((prev) => [...prev, { role: "assistant", text: greeting, ts: Date.now() }]);
+
+    audioRef.current!.src =
+        `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(greeting)}`;
+      audioRef.current!.load();
+      audioRef.current!.play().catch(() => {});
   };
 
   const handleStop = async () => {
-    await scribe.disconnect();
+    audioRef.current?.pause();
+    scribe.disconnect();
     setPartial("");
+  };
+
+  const stopAudio = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    try {
+      a.pause();
+      a.currentTime = 0;
+      // Clear source to cancel network/decoding
+      a.removeAttribute("src"); // more robust than setting to ""
+      a.load();
+    } catch {}
+  };
+
+  const replayMessageAudio = (text: string) => {
+    if (!text.trim() || !audioRef.current) return;
+    stopAudio();
+    audioRef.current.src =
+      `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(text)}`;
+    audioRef.current.load();
+    audioRef.current.play().catch(() => {});
   };
 
   return (
@@ -220,7 +241,19 @@ export function LearnerConversation() {
                 m.role === "user" ? "bg-blue-50 text-blue-900 ml-auto" : "bg-gray-100 text-gray-900 mr-auto"
               }`}
             >
-              {m.text}
+              <div className="flex items-center justify-between gap-2">
+                <span>{m.text}</span>
+                {m.role === "assistant" && (
+                  <button
+                    className="text-xs px-2 py-1 rounded border hover:bg-accent"
+                    onClick={() => replayMessageAudio(m.text)}
+                    title="Replay audio"
+                    aria-label="Replay audio"
+                  >
+                    Replay
+                  </button>
+                )}
+              </div>
             </div>
           ))}
           {partial && (
