@@ -138,6 +138,7 @@ export function LearnerConversation({ selectedLanguage }: { selectedLanguage: { 
   const isDisconnected = useMemo(() => scribe.status === "disconnected", [scribe.status]);
 
   const handleStart = async () => {
+    setMessages([]);
     if (isConnected || isConnecting) return;
     const token = await fetchTokenFromServer();
     await scribe.connect({
@@ -153,7 +154,6 @@ export function LearnerConversation({ selectedLanguage }: { selectedLanguage: { 
     
     let greeting = "Hello are you Ready to Learn! I am here to help you practice. Please say something when you are ready."
     setMessages((prev) => [...prev, { role: "assistant", text: greeting, ts: Date.now() }]);
-
     audioRef.current!.src =
         `/api/elevenlabs-pipeline-auth/open-api/text-to-speech?text=${encodeURIComponent(greeting)}`;
       audioRef.current!.load();
