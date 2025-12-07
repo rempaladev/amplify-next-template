@@ -40,8 +40,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing 'message' in body" }, { status: 400 });
   }
 
+  if(!conversationHistory.has(sessionId)) {
   // Initialize history with system prompt
   conversationHistory.set(sessionId, [{ role: "system", content: getSystemPrompt(language) }]);
+  }
+
+
+  console.log("Conversation history", conversationHistory);
 
   const history = conversationHistory.get(sessionId)!;
   history.push({ role: "user", content: message });
