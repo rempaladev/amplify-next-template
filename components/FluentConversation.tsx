@@ -3,7 +3,7 @@
 import { useConversation } from '@elevenlabs/react';
 import { useCallback, useEffect, useState } from 'react';
 
-export function Conversation() {
+export function FluentConversation() {
   const [error, setError] = useState<string | null>(null);
   
   const conversation = useConversation({
