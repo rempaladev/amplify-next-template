@@ -1,15 +1,25 @@
+import https from "https";
 import { NextResponse } from "next/server";
-import https from "node:https";
+import { prompt_pl } from "./prompt_pl";
+import { prompt_es } from "./prompt_es";
+import { prompt_zh } from "./prompt_zh";
 
 // Keep-alive to reduce TLS handshake overhead on repeated calls
 const keepAliveAgent = new https.Agent({ keepAlive: true });
 
 // Simple in-memory store (resets on server restart)
 const conversationHistory = new Map<string, Array<{ role: "system" | "user" | "assistant"; content: string }>>();
-const { content } = require("./prompts");
 
 // Limit the number of turns kept (reduces payload and latency)
 const MAX_TURNS = 8;
+
+function getSystemPrompt(language: string): string {
+  switch (language) {
+    case "zh":  return prompt_zh;
+    case "es":  return prompt_es;
+    default:    return prompt_pl;
+  }
+}
 
 export async function POST(req: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -17,18 +27,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 });
   }
 
+
   const body = await req.json();
   const message: string = body.message;
   const sessionId: string = body.sessionId || "default";
+
+  console.log("Selected language code: ", body.selectedLanguageCode);
+  
+  const language: string = body.selectedLanguageCode || "pl";
 
   if (!message) {
     return NextResponse.json({ error: "Missing 'message' in body" }, { status: 400 });
   }
 
   // Initialize history with system prompt
-  if (!conversationHistory.has(sessionId)) {
-    conversationHistory.set(sessionId, [{ role: "system", content }]);
-  }
+  conversationHistory.set(sessionId, [{ role: "system", content: getSystemPrompt(language) }]);
 
   const history = conversationHistory.get(sessionId)!;
   history.push({ role: "user", content: message });

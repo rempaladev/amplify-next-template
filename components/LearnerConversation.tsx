@@ -8,11 +8,11 @@ async function fetchTokenFromServer() {
   return data.token;
 }
 
-async function sendToOpenAIStream(transcript: string, sessionId: string, onChunk: (text: string) => void): Promise<string> {
+async function sendToOpenAIStream(transcript: string, sessionId: string, selectedLanguageCode: string, onChunk: (text: string) => void): Promise<string> {
   const resp = await fetch("/api/elevenlabs-pipeline-auth/open-api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: transcript, sessionId }),
+    body: JSON.stringify({ message: transcript, sessionId, selectedLanguageCode }),
   });
   if (!resp.ok || !resp.body) {
     throw new Error("Failed to stream OpenAI response");
@@ -45,7 +45,8 @@ async function sendToOpenAIStream(transcript: string, sessionId: string, onChunk
   return fullText;
 }
 
-export function LearnerConversation() {
+export function LearnerConversation({ selectedLanguage }: { selectedLanguage: { code: string; name: string; flag: string } }) {
+  
   const sessionId = useRef(Date.now().toString()).current;
 
   const [messages, setMessages] = useState<
@@ -53,11 +54,13 @@ export function LearnerConversation() {
   >([]);
   const [partial, setPartial] = useState<string>("");
   const listRef = useRef<HTMLDivElement | null>(null);
+  
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playGenRef = useRef<number>(0); // increments to cancel stale plays
 
   useEffect(() => {
+    
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.preload = "none";
@@ -107,7 +110,7 @@ export function LearnerConversation() {
       // Add assistant placeholder
       setMessages((prev) => [...prev, { role: "assistant", text: "", ts: Date.now() }]);
 
-      const aiResponse = await sendToOpenAIStream(text, sessionId, (chunk) => {
+      const aiResponse = await sendToOpenAIStream(text, sessionId, selectedLanguage.code, (chunk) => {
         // Keep progressive UI updates
         updateAssistantText(chunk);
       });
