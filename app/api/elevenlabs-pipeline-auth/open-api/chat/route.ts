@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
   console.log("Selected language code: ", body.selectedLanguageCode);
   
-  const language: string = body.selectedLanguageCode || "pl";
+  const language: string = body.selectedLanguageCode;
 
   if (!message) {
     return NextResponse.json({ error: "Missing 'message' in body" }, { status: 400 });
@@ -44,9 +44,6 @@ export async function POST(req: Request) {
   // Initialize history with system prompt
   conversationHistory.set(sessionId, [{ role: "system", content: getSystemPrompt(language) }]);
   }
-
-
-  console.log("Conversation history", conversationHistory);
 
   const history = conversationHistory.get(sessionId)!;
   history.push({ role: "user", content: message });
