@@ -70,6 +70,7 @@ export default function LearnerPage() {
           </DropdownMenu>
         </div>
       </div>
+      
       <LearnerConversation selectedLanguage={selectedLanguage} />
     </div>
   );

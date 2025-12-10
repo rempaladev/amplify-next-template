@@ -19,7 +19,7 @@ export default function LessonPage() {
           </p>
         </Link>
         {/* Beginner Conversation Card */}
-        <Link href="/lesson/learner" className="flex flex-col items-center p-6 w-80 h-96 bg-white border-2 border-gray-200 rounded-lg shadow-lg hover:shadow-xl hover:border-green-500 transition-all">
+        <Link href="/lesson/learnerSelection" className="flex flex-col items-center p-6 w-80 h-96 bg-white border-2 border-gray-200 rounded-lg shadow-lg hover:shadow-xl hover:border-green-500 transition-all">
           <div className="w-full h-48 mb-4 bg-linear-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
             <span className="text-6xl">🌱</span>
           </div>
