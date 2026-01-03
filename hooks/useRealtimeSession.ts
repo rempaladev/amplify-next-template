@@ -13,7 +13,7 @@ export interface RealtimeSessionCallbacks {
 
 export interface ConnectOptions {
   getEphemeralKey: () => Promise<string>;
-  initialAgents: RealtimeAgent[];
+  initialAgent: RealtimeAgent;
   audioElement?: HTMLAudioElement;
   extraContext?: Record<string, any>;
   outputGuardrails?: any[];
@@ -34,7 +34,7 @@ export function useRealtimeSession(callbacks: RealtimeSessionCallbacks = {}){
     const connect = useCallback(
         async ({
         getEphemeralKey,
-        initialAgents,
+        initialAgent,
         audioElement,
         extraContext,
         }: ConnectOptions) => {
@@ -43,7 +43,7 @@ export function useRealtimeSession(callbacks: RealtimeSessionCallbacks = {}){
         updateStatus('CONNECTING');
 
         const ek = await getEphemeralKey();
-        const rootAgent = initialAgents[0];
+        const rootAgent = initialAgent;
 
         sessionRef.current = new RealtimeSession(rootAgent, {
             transport: new OpenAIRealtimeWebRTC({

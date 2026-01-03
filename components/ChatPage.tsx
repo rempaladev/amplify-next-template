@@ -1,7 +1,30 @@
 "use client";
+import { tutorAgent } from "@/app/agent/tutorAgent";
+import { SessionStatus, useRealtimeSession } from "@/hooks/useRealtimeSession";
 import React, { useEffect, useRef, useState } from "react";
 
 function ChatPage() {
+
+    const [sessionStatus, setSessionStatus] = useState<SessionStatus>("DISCONNECTED");
+    const {connect, disconnect} = useRealtimeSession({ onConnectionChange: (s) => setSessionStatus(s as SessionStatus)});
+    const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
+    const sdkAudioElement = React.useMemo(() => {
+        if (typeof window === 'undefined') return undefined;
+            const el = document.createElement('audio');
+            el.autoplay = true;
+            el.style.display = 'none';
+            document.body.appendChild(el);
+            return el;
+    }, []);
+
+
+    // Attach SDK audio element once it exists (after first render in browser)
+    useEffect(() => {
+        if (sdkAudioElement && !audioElementRef.current) {
+            audioElementRef.current = sdkAudioElement;
+        }
+    }, [sdkAudioElement]);
 
     const fetchEphemeralKey = async (): Promise<string | null> => {
         const tokenResponse = await fetch("/api/session");
@@ -15,15 +38,47 @@ function ChatPage() {
         return data.client_secret.value;
     };
 
+    const connectToRealtime = async () => {
+
+        if (sessionStatus !== "DISCONNECTED") return;
+
+        setSessionStatus("CONNECTING");
+
+        try {
+            const EPHEMERAL_KEY = await fetchEphemeralKey();
+            if (!EPHEMERAL_KEY) return;
+
+            // Ensure the selectedAgentName is first so that it becomes the root
+
+            await connect({
+                getEphemeralKey: async () => EPHEMERAL_KEY,
+                initialAgent: tutorAgent,
+                audioElement: sdkAudioElement,
+                extraContext: {
+                    //leave blank for now
+                },
+            });
+        } catch (err) {
+            console.error("Error connecting via SDK:", err);
+            setSessionStatus("DISCONNECTED");
+        }
+        return;
+   };
+
+    const disconnectFromRealtime = () => {
+        disconnect();
+        setSessionStatus("DISCONNECTED");
+    };
 
 
-    
+    return (<div>
 
-    
+        <h1>Chat Page</h1>
+
+        
 
 
-
-    return (<div>Chat Page V1</div>);
+    </div>);
 }
 
 export default ChatPage;
