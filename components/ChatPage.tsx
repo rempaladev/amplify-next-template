@@ -75,8 +75,9 @@ function ChatPage() {
 
         <h1>Chat Page</h1>
 
-        
-
+        <button onClick={connectToRealtime}>Connect</button>
+        <button onClick={disconnectFromRealtime}>Disconnect</button>
+        <p>Session Status: {sessionStatus}</p>
 
     </div>);
 }
