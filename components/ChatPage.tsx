@@ -2,6 +2,7 @@
 import { tutorAgent } from "@/app/agent/tutorAgent";
 import { SessionStatus, useRealtimeSession } from "@/hooks/useRealtimeSession";
 import React, { useEffect, useRef, useState } from "react";
+import BottomToolbar from "./BottomToolbar";
 
 function ChatPage() {
 
@@ -26,6 +27,15 @@ function ChatPage() {
         }
     }, [sdkAudioElement]);
 
+    const onToggleConnection = () => {
+        if (sessionStatus === "CONNECTED" || sessionStatus === "CONNECTING") {
+        disconnectFromRealtime();
+        setSessionStatus("DISCONNECTED");
+        } else {
+        connectToRealtime();
+        }
+    };
+
     const fetchEphemeralKey = async (): Promise<string | null> => {
         const tokenResponse = await fetch("/api/session");
         const data = await tokenResponse.json();
@@ -41,7 +51,7 @@ function ChatPage() {
     const connectToRealtime = async () => {
 
         if (sessionStatus !== "DISCONNECTED") return;
-
+        
         setSessionStatus("CONNECTING");
 
         try {
@@ -71,14 +81,14 @@ function ChatPage() {
     };
 
 
-    return (<div>
-
+    return (
+    <div>
         <h1>Chat Page</h1>
 
-        <button onClick={connectToRealtime}>Connect</button>
-        <button onClick={disconnectFromRealtime}>Disconnect</button>
-        <p>Session Status: {sessionStatus}</p>
-
+        <BottomToolbar 
+            sessionStatus={sessionStatus}
+            onToggleConnection={onToggleConnection}
+        />
     </div>);
 }
 
