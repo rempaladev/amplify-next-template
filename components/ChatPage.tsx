@@ -3,14 +3,20 @@ import { tutorAgent } from "@/app/agent/tutorAgent";
 import { SessionStatus, useRealtimeSession } from "@/hooks/useRealtimeSession";
 import React, { useEffect, useRef, useState } from "react";
 import BottomToolbar from "./BottomToolbar";
+import Transcript from "./Transcript";
+import { useTranscript } from "@/contexts/TranscriptContext";
 
 function ChatPage() {
 
+const {
+    addTranscriptMessage,
+    addTranscriptBreadcrumb,
+  } = useTranscript();
+
     const [sessionStatus, setSessionStatus] = useState<SessionStatus>("DISCONNECTED");
-    const {connect, disconnect} = useRealtimeSession({ onConnectionChange: (s) => setSessionStatus(s as SessionStatus)});
+    const {connect, disconnect, interrupt, sendUserText} = useRealtimeSession({ onConnectionChange: (s) => setSessionStatus(s as SessionStatus)});
     const audioElementRef = useRef<HTMLAudioElement | null>(null);
     const [userText, setUserText] = useState<string>("");
-
 
     const sdkAudioElement = React.useMemo(() => {
         if (typeof window === 'undefined') return undefined;
@@ -70,19 +76,38 @@ function ChatPage() {
         return;
    };
 
+    const handleSendTextMessage = () => {
+    if (!userText.trim()) return;
+        interrupt();
+
+        try {
+            sendUserText(userText.trim());
+        } catch (err) {
+            console.error('Failed to send via SDK', err);
+        }
+
+        setUserText("");
+  };
+
     const disconnectFromRealtime = () => {
         disconnect();
         setSessionStatus("DISCONNECTED");
     };
 
-
     return (
     <div>
         <h1>Chat Page</h1>
 
-         <div className="flex flex-1 gap-2 px-2 overflow-hidden relative">
-        
-      </div>
+        <div className="flex flex-1 gap-2 px-2 overflow-hidden relative">
+            <Transcript
+                userText={userText}
+                setUserText={setUserText}
+                onSendMessage={handleSendTextMessage}
+                canSend={
+                    sessionStatus === "CONNECTED"
+                }
+            />
+        </div>
 
         <BottomToolbar 
             sessionStatus={sessionStatus}
