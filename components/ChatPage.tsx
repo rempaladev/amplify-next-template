@@ -4,14 +4,8 @@ import { SessionStatus, useRealtimeSession } from "@/hooks/useRealtimeSession";
 import React, { useEffect, useRef, useState } from "react";
 import BottomToolbar from "./BottomToolbar";
 import Transcript from "./Transcript";
-import { useTranscript } from "@/contexts/TranscriptContext";
 
 function ChatPage() {
-
-const {
-    addTranscriptMessage,
-    addTranscriptBreadcrumb,
-  } = useTranscript();
 
     const [sessionStatus, setSessionStatus] = useState<SessionStatus>("DISCONNECTED");
     const {connect, disconnect, interrupt, sendUserText} = useRealtimeSession({ onConnectionChange: (s) => setSessionStatus(s as SessionStatus)});
