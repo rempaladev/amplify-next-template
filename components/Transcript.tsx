@@ -64,12 +64,12 @@ return(
         
    <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl">
       <div className="flex flex-col flex-1 min-h-0">
-        <div className="flex items-center justify-between px-6 py-3 sticky top-0 z-10 text-base border-b bg-white rounded-t-xl">
+        <div className="flex items-center justify-between px-4 py-2 sm:px-6 sm:py-3 sticky top-0 z-10 text-base border-b bg-white rounded-t-xl">
           <span className="font-semibold">Transcript</span>
           <div className="flex gap-x-2">
             <button
               onClick={handleCopyTranscript}
-              className="w-24 text-sm px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center gap-x-1"
+              className="text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center gap-x-1"
             >
               <ClipboardCopyIcon />
               {justCopied ? "Copied!" : "Copy"}
@@ -81,7 +81,7 @@ return(
         {/* Transcript Content */}
         <div
           ref={transcriptRef}
-          className="overflow-auto p-4 flex flex-col gap-y-4 h-full"
+          className="overflow-auto p-3 sm:p-4 flex flex-col gap-y-3 sm:gap-y-4 h-[60vh] sm:h-[500px]"
         >
           {[...transcriptItems]
             .sort((a, b) => a.createdAtMs - b.createdAtMs)
@@ -106,7 +106,7 @@ return(
               const containerClasses = `flex justify-end flex-col ${
                 isUser ? "items-end" : "items-start"
               }`;
-              const bubbleBase = `max-w-lg p-3 ${
+              const bubbleBase = `${
                 isUser ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-black"
               }`;
               const isBracketedMessage =
@@ -120,12 +120,12 @@ return(
 
               return (
                 <div key={itemId} className={containerClasses}>
-                  <div className="max-w-lg">
+                  <div className="max-w-[85%] sm:max-w-[70%] lg:max-w-[650px]">
                     <div
-                      className={`${bubbleBase} rounded-t-xl rounded-b-xl`}
+                      className={`${bubbleBase} rounded-t-xl rounded-b-xl p-2 sm:p-3`}
                       >
                       <div
-                        className={`text-xs ${
+                        className={`text-[10px] sm:text-xs ${
                           isUser ? "text-gray-400" : "text-gray-500"
                         } font-mono`}
                       >
@@ -142,9 +142,9 @@ return(
               return (
                 <div
                   key={itemId}
-                  className="flex flex-col justify-start items-start text-gray-500 text-sm"
+                  className="flex flex-col justify-start items-start text-gray-500 text-[12px] sm:text-sm"
                 >
-                  <span className="text-xs font-mono">{timestamp}</span>
+                  <span className="text-[10px] sm:text-xs font-mono">{timestamp}</span>
                   <div
                     className={`whitespace-pre-wrap flex items-center font-mono text-sm text-gray-800 ${
                       data ? "cursor-pointer" : ""

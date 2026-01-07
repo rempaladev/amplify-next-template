@@ -95,10 +95,10 @@ const {
     };
 
     return (
-    <div>
-        <h1>Chat Page</h1>
+    <div className="max-w-screen-md mx-auto p-2 sm:p-4 min-h-screen pb-20 sm:pb-24">
+        <h1 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4">Chat Page</h1>
 
-        <div className="flex flex-1 gap-2 px-2 overflow-hidden relative">
+        <div className="flex flex-1 gap-2 overflow-hidden relative">
             <Transcript
                 userText={userText}
                 setUserText={setUserText}

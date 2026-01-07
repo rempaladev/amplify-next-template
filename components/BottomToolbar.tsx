@@ -32,15 +32,17 @@ function BottomToolbar({
     }
 
     return(
-         <div className="p-4 flex flex-row items-center justify-center gap-x-8">
-        <button
-            onClick={onToggleConnection}
-            className={getConnectionButtonClasses()}
-            disabled={isConnecting}
-        >
-            {getConnectionButtonLabel()}
-        </button>
-    </div>
+         <div className="sticky bottom-0 bg-transparent z-50">
+            <div className="max-w-screen-md w-full mx-auto bg-white border-t px-2 sm:px-4 py-3 sm:py-4 flex flex-row items-center justify-center gap-x-8">
+                <button
+                    onClick={onToggleConnection}
+                    className={getConnectionButtonClasses()}
+                    disabled={isConnecting}
+                >
+                    {getConnectionButtonLabel()}
+                </button>
+            </div>
+        </div>
     );
 }
 
